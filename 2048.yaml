@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: game-2048
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: game-2048
+  namespace: game-2048
+  labels:
+    app: game-2048
+spec:
+  selector:
+    matchLabels:
+      app: game-2048
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: game-2048
+    spec:
+      containers:
+      - name: game-2048-container
+        image: 383654655155.dkr.ecr.ap-northeast-2.amazonaws.com/2048:1.0
+        ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: game-2048
+  name: game-2048-service
+  labels:
+    app: game-2048
+  annotations:
+    alb.ingress.kubernetes.io/healthcheck-path: /2048/index.html
+spec:
+  type: NodePort
+  selector:
+    app: game-2048
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: game-ingress
+  namespace: game-2048
+  labels:
+    app: game
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
+    alb.ingress.kubernetes.io/healthcheck-port: traffic-port
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '15'
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
+    alb.ingress.kubernetes.io/success-codes: '200'
+    alb.ingress.kubernetes.io/healthy-threshold-count: '2'
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: '2'
+    alb.ingress.kubernetes.io/group.name: game
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:                     
+          - path: /2048
+            pathType: Prefix
+            backend:
+              service:
+                name: game-2048-service
+                port:
+                  number: 80
+

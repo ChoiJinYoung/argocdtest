@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: game-racer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: racer
+  namespace: game-racer
+  labels:
+    app: racer
+spec:
+  selector:
+    matchLabels:
+      app: racer
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: racer
+    spec:
+      containers:
+      - name: racer-container
+        image: 383654655155.dkr.ecr.ap-northeast-2.amazonaws.com/racer:1.0
+        ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: game-racer
+  name: racer-service
+  labels:
+    app: racer
+  annotations:
+    alb.ingress.kubernetes.io/healthcheck-path: /racer/index.html
+spec:
+  type: NodePort
+  selector:
+    app: racer
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: game-ingress
+  namespace: game-racer
+  labels:
+    app: game
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
+    alb.ingress.kubernetes.io/healthcheck-port: traffic-port
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '15'
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
+    alb.ingress.kubernetes.io/success-codes: '200'
+    alb.ingress.kubernetes.io/healthy-threshold-count: '2'
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: '2'
+    alb.ingress.kubernetes.io/group.name: game
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          - path: /racer
+            pathType: Prefix
+            backend:
+              service:
+                name: racer-service
+                port:
+                  number: 80                        
