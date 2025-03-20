@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: racer
+  namespace: game-racer
+  labels:
+    app: racer
+spec:
+  selector:
+    matchLabels:
+      app: racer
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: racer
+    spec:
+      containers:
+      - name: racer-container
+        image: $AWS_ECR_REPO/racer:1.0
+        ports:
+            - containerPort: 80
